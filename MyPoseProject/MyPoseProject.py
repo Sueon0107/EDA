@@ -1,3 +1,4 @@
+import time  # 시간 간격을 계산하기 위한 모듈
 import cv2
 import mediapipe as mp
 import numpy as np   # 각도 계산을 위해 numpy 사용
@@ -28,10 +29,17 @@ def calculate_angle(a, b, c):
     return angle
 
 
-# 웹캠 열기
-cap = cv2.VideoCapture(0)
+# 웹캠 열기 0=기본, 1=외장 웹캠
+#cap = cv2.VideoCapture(0)
+#스마트폰 droidcam 앱 사용
+cap = cv2.VideoCapture("http://192.168.0.20:4747/video")
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 영상 버퍼 최소화
 
 with mp_pose.Pose() as pose:
+    
+    last_update_time = 0  # 마지막으로 각도를 업데이트한 시간
+    update_interval = 0.1  # 업데이트 간격 (0.1초 = 1초에 10번)
+    angle = 0  # 무릎 각도 저장 변수 (항상 존재하도록 미리 생성)
 
     while cap.isOpened():
 
@@ -48,21 +56,48 @@ with mp_pose.Pose() as pose:
         if results.pose_landmarks:
 
             landmarks = results.pose_landmarks.landmark
-
+            cv2.putText(
+            image,
+            f"Knee Angle: {int(angle)}",
+            (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
+            )
+            
             # 왼쪽 엉덩이 / 무릎 / 발목 좌표
             hip = [landmarks[23].x, landmarks[23].y]
             knee = [landmarks[25].x, landmarks[25].y]
             ankle = [landmarks[27].x, landmarks[27].y]
 
             # 무릎 각도 계산
-            angle = calculate_angle(hip, knee, ankle)
+            current_time = time.time()  # 현재 시간 가져오기
 
-            print("무릎 각도:", angle)
 
-            mp_drawing.draw_landmarks(
+          # 마지막 업데이트 이후 0.1초 이상 지났을 때만 각도 업데이트
+            if current_time - last_update_time >= update_interval:
+                angle = calculate_angle(hip, knee, ankle)
+                last_update_time = current_time  # 마지막 업데이트 시간 갱신
+
+            print(angle) 
+            # ------------------------------
+            # 화면에 무릎 각도 표시
+            # ------------------------------
+            cv2.putText(
                 image,
-                results.pose_landmarks,
-                mp_pose.POSE_CONNECTIONS
+                f"Knee Angle: {int(angle)}",   # 화면에 표시할 텍스트
+                (50, 50),                     # 화면 위치 (x, y)
+                cv2.FONT_HERSHEY_SIMPLEX,     # 글꼴
+                1,                            # 글자 크기
+                (0, 255, 0),                  # 글자 색 (초록)
+                2                             # 글자 두께
+            )
+            # MediaPipe 포즈 랜드마크를 화면에 항상 그리기
+            mp_drawing.draw_landmarks(
+            image,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS
             )
 
         cv2.imshow('Pose Detection', image)
