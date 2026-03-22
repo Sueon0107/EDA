@@ -30,16 +30,19 @@ def calculate_angle(a, b, c):
 
 
 # 웹캠 열기 0=기본, 1=외장 웹캠
-#cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
 #스마트폰 droidcam 앱 사용
-cap = cv2.VideoCapture("http://192.168.0.20:4747/video")
-cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 영상 버퍼 최소화
+#cap = cv2.VideoCapture("http://192.168.0.20:4747/video")
+#cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 영상 버퍼 최소화
 
 with mp_pose.Pose() as pose:
     
     last_update_time = 0  # 마지막으로 각도를 업데이트한 시간
     update_interval = 0.1  # 업데이트 간격 (0.1초 = 1초에 10번)
     angle = 0  # 무릎 각도 저장 변수 (항상 존재하도록 미리 생성)
+       
+    counter = 0      # 횟수 저장
+    stage = None     # 현재 상태 (up/down)
 
     while cap.isOpened():
 
@@ -80,6 +83,19 @@ with mp_pose.Pose() as pose:
                 angle = calculate_angle(hip, knee, ankle)
                 last_update_time = current_time  # 마지막 업데이트 시간 갱신
 
+                # ------------------------------
+                # 무릎 카운트 로직 ⭐ 핵심
+                # ------------------------------
+
+                # 무릎이 펴진 상태
+                if angle > 160:
+                    stage = "up"
+
+                # 무릎이 굽혀지면 카운트 증가
+                if angle < 90 and stage == "up":
+                    stage = "down"
+                    counter += 1
+
             print(angle) 
             # ------------------------------
             # 화면에 무릎 각도 표시
@@ -92,6 +108,31 @@ with mp_pose.Pose() as pose:
                 1,                            # 글자 크기
                 (0, 255, 0),                  # 글자 색 (초록)
                 2                             # 글자 두께
+            )
+            # ------------------------------
+            # 횟수 표시 (Count)
+            # ------------------------------
+            cv2.putText(
+                image,
+                f"Count: {counter}",
+                (50, 100),                 # 각도 아래쪽 위치
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (255, 0, 0),               # 파란색
+                2
+            )
+
+            # ------------------------------
+            # 현재 상태 표시 (Stage)
+            # ------------------------------
+            cv2.putText(
+                image,
+                f"Stage: {stage}",
+                (50, 150),                 # Count 아래쪽 위치
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 0, 255),               # 빨간색
+                2
             )
             # MediaPipe 포즈 랜드마크를 화면에 항상 그리기
             mp_drawing.draw_landmarks(
