@@ -44,6 +44,9 @@ with mp_pose.Pose() as pose:
     counter = 0      # 횟수 저장
     stage = None     # 현재 상태 (up/down)
 
+    last_detected_time = time.time()   # 마지막 사람 인식 시간
+    reset_time = 5   # 사람이 5초 이상 안 보이면 초기화 (초 단위)
+
     while cap.isOpened():
 
         ret, frame = cap.read()
@@ -57,6 +60,9 @@ with mp_pose.Pose() as pose:
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         if results.pose_landmarks:
+
+            # 사람이 인식되었으므로 현재 시간을 기록
+            last_detected_time = time.time()
 
             landmarks = results.pose_landmarks.landmark
             cv2.putText(
@@ -140,6 +146,20 @@ with mp_pose.Pose() as pose:
             results.pose_landmarks,
             mp_pose.POSE_CONNECTIONS
             )
+
+        else:
+            # 현재 시간 가져오기
+            current_time = time.time()
+
+            # 마지막 인식 이후 시간이 5초 이상 지났으면
+            if current_time - last_detected_time > reset_time:
+
+                # ----------- 초기화 -----------
+
+                counter = 0
+                stage = None
+
+                print("5초 이상 사람 미인식 → 카운트 초기화")
 
         cv2.imshow('Pose Detection', image)
 
