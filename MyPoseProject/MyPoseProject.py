@@ -39,7 +39,7 @@ with mp_pose.Pose() as pose:
     
     last_update_time = 0  # 마지막으로 각도를 업데이트한 시간
     update_interval = 0.1  # 업데이트 간격 (0.1초 = 1초에 10번)
-    angle = 0  # 무릎 각도 저장 변수 (항상 존재하도록 미리 생성)
+    angle = 0  # 무릎 각도 저장 변수 
        
     counter = 0      # 횟수 저장
     stage = None     # 현재 상태 (up/down)
@@ -74,7 +74,7 @@ with mp_pose.Pose() as pose:
             knee = [landmarks[25].x, landmarks[25].y]
             ankle = [landmarks[27].x, landmarks[27].y]
 
-            # 무릎 각도 계산
+           
             current_time = time.time()  # 현재 시간 가져오기
 
 
